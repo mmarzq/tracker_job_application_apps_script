@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body { font-family: Arial, sans-serif; margin: 12px; font-size: 13px; }
+      label { display: block; margin-top: 8px; font-weight: bold; }
+      input, select, textarea { width: 100%; box-sizing: border-box; padding: 5px; margin-top: 2px; }
+      button { margin-top: 14px; padding: 8px 16px; cursor: pointer; }
+      #save { background: #1a73e8; color: white; border: none; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <div id="fields"></div>
+    <button id="save" onclick="save()">Speichern</button>
+    <button onclick="google.script.host.close()">Abbrechen</button>
+
+    <script>
+      const HEADERS = [
+        'Company', 'Position / Job Title', 'Location', 'Job URL', 'Category',
+        'Job Type', 'Stage', 'Date Applied', 'Job Source', 'Salary Range',
+        'Lebenslauf', 'Anschreiben', 'Dokumente', 'Bewerbungsportal (Ja/Nein)',
+        'Notes', 'Interview Date', 'Next Step', 'Files & media'
+      ];
+      // Felder, die als Dropdown/Datum dargestellt werden
+      const DROPDOWN = { 'Bewerbungsportal (Ja/Nein)': ['', 'Ja', 'Nein'] };
+      const DATES = ['Date Applied', 'Interview Date'];
+
+      const container = document.getElementById('fields');
+      HEADERS.forEach(h => {
+        const id = 'f_' + HEADERS.indexOf(h);
+        let field;
+        if (DROPDOWN[h]) {
+          field = '<select id="' + id + '">' +
+            DROPDOWN[h].map(o => '<option>' + o + '</option>').join('') + '</select>';
+        } else if (DATES.includes(h)) {
+          field = '<input type="date" id="' + id + '">';
+        } else if (h === 'Notes') {
+          field = '<textarea id="' + id + '" rows="3"></textarea>';
+        } else {
+          field = '<input type="text" id="' + id + '">';
+        }
+        container.innerHTML += '<label>' + h + '</label>' + field;
+      });
+
+      function save() {
+        const data = {};
+        HEADERS.forEach(h => {
+          data[h] = document.getElementById('f_' + HEADERS.indexOf(h)).value;
+        });
+
+        const btn = document.getElementById('save');
+          btn.disabled = true;
+          btn.textContent = 'Speichern…';
+        google.script.run
+          .withSuccessHandler(() => google.script.host.close())
+          .addRow(data);
+      }
+    </script>
+  </body>
+</html>
