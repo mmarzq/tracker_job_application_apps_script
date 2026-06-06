@@ -22,7 +22,8 @@
         'Lebenslauf', 'Anschreiben', 'Dokumente', 'Bewerbungsportal (Ja/Nein)',
         'Notes', 'Interview Date', 'Next Step', 'Files & media'
       ];
-      // Felder, die als Dropdown/Datum dargestellt werden
+      // Feldereinstellungen: Pflichtfelder, Dropdowns, Datumsfelder
+      const REQUIRED = ['Company', 'Position / Job Title', 'Job URL'];
       const DROPDOWN = { 'Bewerbungsportal (Ja/Nein)': ['', 'Ja', 'Nein'] };
       const DATES = ['Date Applied', 'Interview Date'];
 
@@ -43,12 +44,21 @@
         container.innerHTML += '<label>' + h + '</label>' + field;
       });
 
+
       function save() {
         const data = {};
+        const missing = [];
         HEADERS.forEach(h => {
-          data[h] = document.getElementById('f_' + HEADERS.indexOf(h)).value;
+          const val = document.getElementById('f_' + HEADERS.indexOf(h)).value.trim();
+          data[h] = val;
+          if (REQUIRED.includes(h) && !val) missing.push(h);
         });
 
+        if (missing.length) {
+          alert('Bitte ausfüllen:\n• ' + missing.join('\n• '));
+          return;
+        }
+  
         const btn = document.getElementById('save');
           btn.disabled = true;
           btn.textContent = 'Speichern…';
