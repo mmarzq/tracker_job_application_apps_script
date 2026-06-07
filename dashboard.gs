@@ -1,6 +1,20 @@
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('dashboard')
+    .setTitle('Dashboard – Bewerbungen')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+const DASHBOARD_URL = 'https://script.google.com/macros/s/AKfycbzk2XI193Qa44aTZOlCe2mE7LjKjjjOd9l-Xa4zIkA/dev';
+
 function showDashboard() {
-  const html = HtmlService.createHtmlOutputFromFile('dashboard').setWidth(960).setHeight(620);
-  SpreadsheetApp.getUi().showModelessDialog(html, 'Dashboard – Bewerbungen');
+  const html = HtmlService.createHtmlOutput(
+    `<p style="font-family:Arial;font-size:14px">
+       <a href="${DASHBOARD_URL}" target="_blank" onclick="google.script.host.close()">
+         📊 Dashboard öffnen
+       </a>
+     </p>`
+  );
+  SpreadsheetApp.getUi().showModalDialog(html, 'Dashboard');
 }
 
 function getDashboardData() {
