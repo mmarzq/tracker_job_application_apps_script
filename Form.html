@@ -14,21 +14,26 @@
         'Lebenslauf', 'Anschreiben', 'Dokumente', 'Bewerbungsportal (Ja/Nein)',
         'Notes', 'Interview Date', 'Next Step', 'Files & media'
       ];
-      const REQUIRED = ['Company', 'Position / Job Title', 'Job URL', 'Files & media' ];
-      const DATES    = ['Date Applied', 'Interview Date'];
-      const BOOL_CB  = ['Bewerbungsportal (Ja/Nein)'];
+      const REQUIRED    = ['Company', 'Position / Job Title', 'Job URL'];
+      const DATES       = ['Date Applied', 'Interview Date'];
+      const BOOL_CB     = ['Bewerbungsportal (Ja/Nein)'];
+      const AUTO        = ['Folder'];        // server-seitig befüllt
+      const FILE_UPLOAD = ['Files & media']; // Datei-Upload, separat behandelt
 
       const cfg = <?!= configJson ?>;
 
       const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
       document.getElementById('fields').innerHTML = HEADERS.map((h, i) => {
+        if (AUTO.includes(h)) return '';
         const id  = 'f' + i;
         const req = REQUIRED.includes(h) ? ' *' : '';
         const c   = cfg[h];
         let field;
 
-        if (c?.type === 'multiselect') {
+        if (FILE_UPLOAD.includes(h)) {
+          field = `<input type="file" id="${id}">`;
+        } else if (c?.type === 'multiselect') {
           field = `<div id="${id}">` +
             c.values.map(v => `<div><label><input type="checkbox" value="${esc(v)}"> ${esc(v)}</label></div>`).join('') +
             '</div>';
@@ -54,6 +59,7 @@
         const missing = [];
 
         HEADERS.forEach((h, i) => {
+          if (AUTO.includes(h) || FILE_UPLOAD.includes(h)) return;
           const id = 'f' + i;
           const c  = cfg[h];
           let val;
@@ -73,10 +79,29 @@
 
         if (missing.length) { alert('Bitte ausfüllen:\n• ' + missing.join('\n• ')); return; }
 
-        google.script.run
-          .withSuccessHandler(() => google.script.host.close())
-          .withFailureHandler(e => alert('Fehler: ' + e.message))
-          .addRow(data);
+        // Datei lesen und als Base64 an Server übergeben
+        const fileIdx   = HEADERS.indexOf('Files & media');
+        const fileInput = document.getElementById('f' + fileIdx);
+        const file      = fileInput?.files[0];
+
+        const submit = fileData => {
+          google.script.run
+            .withSuccessHandler(() => google.script.host.close())
+            .withFailureHandler(e => alert('Fehler: ' + e.message))
+            .addRow(data, fileData);
+        };
+
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = e => submit({
+            base64:   e.target.result.split(',')[1],
+            name:     file.name,
+            mimeType: file.type || 'application/octet-stream'
+          });
+          reader.readAsDataURL(file);
+        } else {
+          submit(null);
+        }
       }
     </script>
   </body>

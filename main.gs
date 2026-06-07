@@ -32,7 +32,7 @@ function showForm() {
   SpreadsheetApp.getUi().showModalDialog(html, 'Neue Bewerbung');
 }
 
-function addRow(data) {
+function addRow(data, fileData) {
   const sheet = SpreadsheetApp.getActiveSheet();
   sheet.insertRowBefore(2);
 
@@ -41,9 +41,16 @@ function addRow(data) {
   DriveApp.getFileById(ANSCHREIBEN_VORLAGE_ID).makeCopy(folder);
   DriveApp.getFileById(LEBENSLAUF_VORLAGE_ID).makeCopy(folder);
 
+  let fileUrl = '';
+  if (fileData) {
+    const blob = Utilities.newBlob(Utilities.base64Decode(fileData.base64), fileData.mimeType, fileData.name);
+    fileUrl = folder.createFile(blob).getUrl();
+  }
+
   const row = HEADERS.map(h => {
     if (h === 'Bewerbungsportal (Ja/Nein)') return data[h] === 'TRUE';
-    if (h === 'Folder') return folder.getUrl();
+    if (h === 'Folder')        return folder.getUrl();
+    if (h === 'Files & media') return fileUrl;
     return data[h] || '';
   });
   sheet.getRange(2, 1, 1, row.length).setValues([row]);
