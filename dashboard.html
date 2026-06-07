@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 13px; margin: 12px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 4px 8px; text-align: left; white-space: nowrap; }
+    th { background: #f0f0f0; position: sticky; top: 0; }
+    #table-wrap { max-height: 380px; overflow-y: auto; margin-top: 8px; }
+    .stat-row { margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <div id="loading">Lade Dashboard…</div>
+  <div id="content" style="display:none">
+
+    <div id="stats" class="stat-row"></div>
+
+    <hr>
+    <b>Anstehende Interviews</b>
+    <div id="upcoming"></div>
+
+    <hr>
+    <b>Alle Bewerbungen</b> &nbsp;
+    Stage: <select id="filter" onchange="filterTable()"><option value="">Alle</option></select>
+    &nbsp; Suche: <input id="search" type="text" placeholder="Company / Position…" oninput="filterTable()" style="width:160px">
+    <div id="table-wrap">
+      <table><thead id="thead"></thead><tbody id="tbody"></tbody></table>
+    </div>
+
+  </div>
+
+  <script>
+    const COLS = ['Company', 'Position / Job Title', 'Location', 'Stage', 'Date Applied', 'Category', 'Job Source', 'Interview Date', 'Next Step'];
+    const STAGE_COLOR = {
+      'Applied':                  '#dbeeff',
+      'Interview Scheduled':      '#fff5cc',
+      'Interviewed':              '#d6f5d6',
+      'Rejected':                 '#fde0e0',
+      'Rejected after Interview': '#f5c6c6'
+    };
+
+    let allRows = [];
+
+    google.script.run
+      .withSuccessHandler(({ stats, upcoming, rows }) => {
+        renderStats(stats);
+        renderUpcoming(upcoming);
+        allRows = rows;
+        buildStageFilter(stats.byStage);
+        document.getElementById('thead').innerHTML =
+          '<tr>' + COLS.map(c => `<th>${c}</th>`).join('') + '</tr>';
+        renderTable(allRows);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('content').style.display = '';
+      })
+      .withFailureHandler(e => document.getElementById('loading').textContent = 'Fehler: ' + e.message)
+      .getDashboardData();
+
+    function renderStats(s) {
+      const stages = Object.entries(s.byStage).sort((a,b) => b[1]-a[1])
+        .map(([k,v]) => `<b>${k}:</b> ${v}`).join(' &nbsp;|&nbsp; ');
+      document.getElementById('stats').innerHTML =
+        `<b>Gesamt:</b> ${s.total} &nbsp;|&nbsp; <b>Diese Woche:</b> ${s.thisWeek} &nbsp;|&nbsp; <b>Diesen Monat:</b> ${s.thisMonth}<br>${stages}`;
+    }
+
+    function renderUpcoming(upcoming) {
+      document.getElementById('upcoming').innerHTML = upcoming.length
+        ? '<table style="margin-top:4px"><tr><th>Datum</th><th>Company</th><th>Position</th></tr>' +
+          upcoming.map(u => `<tr><td>${u.date}</td><td>${u.company}</td><td>${u.position}</td></tr>`).join('') +
+          '</table>'
+        : '<p>Keine anstehenden Interviews.</p>';
+    }
+
+    function buildStageFilter(byStage) {
+      const sel = document.getElementById('filter');
+      Object.keys(byStage).sort().forEach(s => {
+        const o = document.createElement('option');
+        o.value = o.textContent = s;
+        sel.appendChild(o);
+      });
+    }
+
+    function filterTable() {
+      const stage  = document.getElementById('filter').value.toLowerCase();
+      const search = document.getElementById('search').value.toLowerCase();
+      renderTable(allRows.filter(r =>
+        (!stage  || r['Stage'].toLowerCase() === stage) &&
+        (!search || r['Company'].toLowerCase().includes(search) || r['Position / Job Title'].toLowerCase().includes(search))
+      ));
+    }
+
+    function renderTable(rows) {
+      document.getElementById('tbody').innerHTML = rows.map(r => {
+        const bg = STAGE_COLOR[r['Stage']] ? `style="background:${STAGE_COLOR[r['Stage']]}"` : '';
+        return `<tr ${bg}>` + COLS.map(c => `<td>${r[c] || ''}</td>`).join('') + '</tr>';
+      }).join('');
+    }
+  </script>
+</body>
+</html>

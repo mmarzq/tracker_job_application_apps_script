@@ -16,8 +16,10 @@ function onOpen() {
     .createMenu('Bewerbungen')
     .addItem('➕ New (leere Zeile)', 'insertEmptyRow')
     .addItem('📝 New (Formular ausfüllen)', 'showForm')
+    .addItem('📊 Dashboard', 'showDashboard')
     .addToUi();
 }
+
 
 function insertEmptyRow() {
   const sheet = SpreadsheetApp.getActiveSheet();
