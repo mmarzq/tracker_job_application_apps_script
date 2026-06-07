@@ -4,7 +4,7 @@
   <body>
     <div id="fields"></div>
     <br>
-    <button onclick="save()">Speichern</button>
+    <button id="btn-save" onclick="save()">Speichern</button>
     <button onclick="google.script.host.close()">Abbrechen</button>
 
     <script>
@@ -88,10 +88,18 @@
 
         if (missing.length) { alert('Bitte ausfüllen:\n• ' + missing.join('\n• ')); return; }
 
+        const btn = document.getElementById('btn-save');
+        btn.disabled = true;
+        btn.textContent = 'Speichern…';
+
         const submit = fileData => {
           google.script.run
             .withSuccessHandler(() => google.script.host.close())
-            .withFailureHandler(e => alert('Fehler: ' + e.message))
+            .withFailureHandler(e => {
+              btn.disabled = false;
+              btn.textContent = 'Speichern';
+              alert('Fehler: ' + e.message);
+            })
             .addRow(data, fileData);
         };
 
