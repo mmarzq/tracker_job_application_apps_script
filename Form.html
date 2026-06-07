@@ -54,6 +54,10 @@
         return `<p><b>${esc(h)}${req}</b><br>${field}</p>`;
       }).join('');
 
+      // Standardwerte
+      document.getElementById('f' + HEADERS.indexOf('Stage')).value = 'Not Started';
+      document.getElementById('f' + HEADERS.indexOf('Date Applied')).value = new Date().toISOString().slice(0, 10);
+
       function save() {
         const data    = {};
         const missing = [];
@@ -77,12 +81,12 @@
           if (REQUIRED.includes(h) && !val) missing.push(h);
         });
 
-        if (missing.length) { alert('Bitte ausfüllen:\n• ' + missing.join('\n• ')); return; }
-
-        // Datei lesen und als Base64 an Server übergeben
         const fileIdx   = HEADERS.indexOf('Files & media');
         const fileInput = document.getElementById('f' + fileIdx);
         const file      = fileInput?.files[0];
+        if (!file) missing.push('Files & media');
+
+        if (missing.length) { alert('Bitte ausfüllen:\n• ' + missing.join('\n• ')); return; }
 
         const submit = fileData => {
           google.script.run
