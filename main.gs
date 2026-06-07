@@ -1,9 +1,13 @@
 const HEADERS = [
-  'Company', 'Position / Job Title', 'Location', 'Job URL', 'Category',
+  'Company', 'Position / Job Title', 'Location', 'Job URL', 'Folder', 'Category',
   'Job Type', 'Stage', 'Date Applied', 'Job Source', 'Salary Range',
   'Lebenslauf', 'Anschreiben', 'Dokumente', 'Bewerbungsportal (Ja/Nein)',
   'Notes', 'Interview Date', 'Next Step', 'Files & media'
 ];
+const BEWERBUNG_FOLDER_ID    = '1b_Olkq1J-5r4Rq_ynooEzt_UCavNWC3k';
+const ANSCHREIBEN_VORLAGE_ID = '1fnmRhmMF_BUY7aIRbHfVqa6Vc6wy8-ve';
+const LEBENSLAUF_VORLAGE_ID  = '1CxnqhxYDDEZX6p4snwW9g5yxLILoErtl';
+
 const MULTISELECT = ['Category', 'Job Source', 'Dokumente'];
 const DROPDOWN    = ['Job Type', 'Stage', 'Lebenslauf', 'Anschreiben'];
 
@@ -31,10 +35,19 @@ function showForm() {
 function addRow(data) {
   const sheet = SpreadsheetApp.getActiveSheet();
   sheet.insertRowBefore(2);
-  const row = HEADERS.map(h =>
-    h === 'Bewerbungsportal (Ja/Nein)' ? data[h] === 'TRUE' : (data[h] || '')
-  );
+
+  const folder = DriveApp.getFolderById(BEWERBUNG_FOLDER_ID)
+    .createFolder(`${data['Company']} - ${data['Location']}`);
+  DriveApp.getFileById(ANSCHREIBEN_VORLAGE_ID).makeCopy(folder);
+  DriveApp.getFileById(LEBENSLAUF_VORLAGE_ID).makeCopy(folder);
+
+  const row = HEADERS.map(h => {
+    if (h === 'Bewerbungsportal (Ja/Nein)') return data[h] === 'TRUE';
+    if (h === 'Folder') return folder.getUrl();
+    return data[h] || '';
+  });
   sheet.getRange(2, 1, 1, row.length).setValues([row]);
+
   return true;
 }
 
