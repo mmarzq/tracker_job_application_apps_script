@@ -1,69 +1,81 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <base target="_top">
-    <style>
-      body { font-family: Arial, sans-serif; margin: 12px; font-size: 13px; }
-      label { display: block; margin-top: 8px; font-weight: bold; }
-      input, select, textarea { width: 100%; box-sizing: border-box; padding: 5px; margin-top: 2px; }
-      button { margin-top: 14px; padding: 8px 16px; cursor: pointer; }
-      #save { background: #1a73e8; color: white; border: none; border-radius: 4px; }
-    </style>
-  </head>
+  <head><base target="_top"></head>
   <body>
     <div id="fields"></div>
-    <button id="save" onclick="save()">Speichern</button>
+    <br>
+    <button onclick="save()">Speichern</button>
     <button onclick="google.script.host.close()">Abbrechen</button>
 
     <script>
-      const HEADERS = [
+      const HEADERS  = [
         'Company', 'Position / Job Title', 'Location', 'Job URL', 'Category',
         'Job Type', 'Stage', 'Date Applied', 'Job Source', 'Salary Range',
         'Lebenslauf', 'Anschreiben', 'Dokumente', 'Bewerbungsportal (Ja/Nein)',
         'Notes', 'Interview Date', 'Next Step', 'Files & media'
       ];
-      // Feldereinstellungen: Pflichtfelder, Dropdowns, Datumsfelder
       const REQUIRED = ['Company', 'Position / Job Title', 'Job URL'];
-      const DROPDOWN = { 'Bewerbungsportal (Ja/Nein)': ['', 'Ja', 'Nein'] };
-      const DATES = ['Date Applied', 'Interview Date'];
+      const DATES    = ['Date Applied', 'Interview Date'];
+      const BOOL_CB  = ['Bewerbungsportal (Ja/Nein)'];
 
-      const container = document.getElementById('fields');
-      HEADERS.forEach(h => {
-        const id = 'f_' + HEADERS.indexOf(h);
+      const cfg = <?!= configJson ?>;
+
+      const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+      document.getElementById('fields').innerHTML = HEADERS.map((h, i) => {
+        const id  = 'f' + i;
+        const req = REQUIRED.includes(h) ? ' *' : '';
+        const c   = cfg[h];
         let field;
-        if (DROPDOWN[h]) {
-          field = '<select id="' + id + '">' +
-            DROPDOWN[h].map(o => '<option>' + o + '</option>').join('') + '</select>';
-        } else if (DATES.includes(h)) {
-          field = '<input type="date" id="' + id + '">';
-        } else if (h === 'Notes') {
-          field = '<textarea id="' + id + '" rows="3"></textarea>';
-        } else {
-          field = '<input type="text" id="' + id + '">';
-        }
-        container.innerHTML += '<label>' + h + '</label>' + field;
-      });
 
+        if (c?.type === 'multiselect') {
+          field = `<div id="${id}">` +
+            c.values.map(v => `<div><label><input type="checkbox" value="${esc(v)}"> ${esc(v)}</label></div>`).join('') +
+            '</div>';
+        } else if (c?.type === 'dropdown') {
+          field = `<select id="${id}"><option value=""></option>` +
+            c.values.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('') +
+            '</select>';
+        } else if (BOOL_CB.includes(h)) {
+          field = `<input type="checkbox" id="${id}">`;
+        } else if (DATES.includes(h)) {
+          field = `<input type="date" id="${id}">`;
+        } else if (h === 'Notes') {
+          field = `<textarea id="${id}" rows="3" style="width:100%"></textarea>`;
+        } else {
+          field = `<input type="text" id="${id}" style="width:100%">`;
+        }
+
+        return `<p><b>${esc(h)}${req}</b><br>${field}</p>`;
+      }).join('');
 
       function save() {
-        const data = {};
+        const data    = {};
         const missing = [];
-        HEADERS.forEach(h => {
-          const val = document.getElementById('f_' + HEADERS.indexOf(h)).value.trim();
+
+        HEADERS.forEach((h, i) => {
+          const id = 'f' + i;
+          const c  = cfg[h];
+          let val;
+
+          if (c?.type === 'multiselect') {
+            val = [...document.getElementById(id).querySelectorAll('input:checked')]
+              .map(el => el.value).join(', ');
+          } else if (BOOL_CB.includes(h)) {
+            val = document.getElementById(id).checked ? 'TRUE' : 'FALSE';
+          } else {
+            val = document.getElementById(id).value.trim();
+          }
+
           data[h] = val;
           if (REQUIRED.includes(h) && !val) missing.push(h);
         });
 
-        if (missing.length) {
-          alert('Bitte ausfüllen:\n• ' + missing.join('\n• '));
-          return;
-        }
-  
-        const btn = document.getElementById('save');
-          btn.disabled = true;
-          btn.textContent = 'Speichern…';
+        if (missing.length) { alert('Bitte ausfüllen:\n• ' + missing.join('\n• ')); return; }
+
         google.script.run
           .withSuccessHandler(() => google.script.host.close())
+          .withFailureHandler(e => alert('Fehler: ' + e.message))
           .addRow(data);
       }
     </script>
